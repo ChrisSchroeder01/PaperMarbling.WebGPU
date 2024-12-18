@@ -11,8 +11,8 @@ class Main {
         this.gridCoord = { x: 0, y: 0 };
         this.mouseDown = false;
         this.drops = [];
-        this.maxDrops = 100;
-        this.detail = 200;
+        this.maxDrops = 250;
+        this.detail = 500;
     }
 
     async initialize() {
@@ -53,18 +53,18 @@ class Main {
     createBuffers() {
         // Initial buffer size for max drops
         this.dropsBuffer = this.device.createBuffer({
-            size: this.maxDrops * this.detail * 2 * 4, // Each drop has 3 values: x, y, radius
+            size: this.maxDrops * this.detail * 2 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         });
     }    
 
     createMaterial() {
         this.material = new Material(this.device, this.vertexShaderCode, this.fragmentShaderCode, {
-            0: { size: 8, usage: GPUBufferUsage.UNIFORM }, // Resolution
-            1: { size: 4, usage: GPUBufferUsage.UNIFORM }, // numDrops
-            2: { size: 4, usage: GPUBufferUsage.UNIFORM }, // detail
+            0: { size: 8, usage: GPUBufferUsage.UNIFORM },  // Resolution
+            1: { size: 4, usage: GPUBufferUsage.UNIFORM },  // numDrops
+            2: { size: 4, usage: GPUBufferUsage.UNIFORM },  // detail
         }, {
-            3: this.dropsBuffer, // Drops data
+            3: this.dropsBuffer,                            // Drops data
         });
     
         this.material.createPipeline(this.format);
@@ -100,32 +100,25 @@ class Main {
         const canvasRect = this.canvas.getBoundingClientRect();
         const mouse = { x: event.clientX - canvasRect.left, y: event.clientY - canvasRect.top };
     
-        // Add the drop
-        const radius = 100; // Fixed radius for simplicity
+        const radius = 100;
         var drop = new Drop(mouse, radius, this.detail);
-    
-        // Apply marbling transformation to each existing drop (if needed)
+
         for (let i = 0; i < this.drops.length; i++) {
             const other = this.drops[i];
-            other.Marble(drop); // Assuming Marble method is properly defined in Drop class
+            other.Marble(drop);
         }
     
-        // Check if the number of drops exceeds the limit
         if (this.drops.length >= this.maxDrops) {
-            // Remove the first drop (FIFO behavior)
-            this.drops.shift(); // Removes the first drop
+            this.drops.shift();
         }
     
-        // Add the new drop
         this.drops.push(drop);
     
-        // Update the GPU buffer
         this.updateDropsBuffer();
     }
     
     
     updateDropsBuffer() {
-        // Flatten drops data into a Float32Array
         const flattenedDrops = new Float32Array(this.drops.length * this.detail * 2);
 
         this.drops.forEach((drop, index) => {
@@ -135,10 +128,6 @@ class Main {
             }
         });
 
-        console.log(flattenedDrops);
-        
-    
-        // Write to the GPU buffer
         this.device.queue.writeBuffer(this.dropsBuffer, 0, flattenedDrops);
     
         this.material.updateUniform('1', new Uint32Array([this.drops.length]));
